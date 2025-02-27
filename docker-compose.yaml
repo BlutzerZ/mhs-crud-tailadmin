@@ -1,0 +1,52 @@
+version: "3"
+
+networks:
+  mhscrud:
+    driver: bridge
+
+services:
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "7002:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - .:/var/www/
+    depends_on:
+      - php
+    networks:
+      - mhscrud
+
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    tty: true
+    depends_on:
+      - db
+    ports:
+      - "9000"
+    volumes:
+      - .:/var/www
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - mhscrud
+  db:
+    image: mysql:8.0
+    platform: linux/amd64
+    ports:
+      - 3307:3306
+    volumes:
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - mhscrud
